@@ -8,6 +8,7 @@ const generateScreenshot = require('./lib/generateScreenshot.js');
 let context = null;
 
 async function init (browser) {
+  console.log('init');
   context = await browser.newContext();
 
   app.get('/generate', async (req, res) => {
