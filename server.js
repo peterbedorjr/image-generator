@@ -1,22 +1,34 @@
 const express = require('express');
+const { chromium } = require('playwright');
+const app = express();
+const port = 3000;
 
-const app = express.createServer();
+const generateScreenshot = require('./lib/generateScreenshot.js');
 
-// If we're going to render on our side
-// app.configure(function() {
-//   var pub = __dirname + './public';
-//   pub = require("path").normalize(pub);
-//   app.set('views', __dirname + '/views');
-//   app.set('view engine', 'jade');
-// });
+let context = null;
 
-app.use(express.bodyParser());
+async function init (browser) {
+  context = await browser.newContext();
 
-app.get('/', function(req, res) {
-  console.log(req);
-  res.send('test');
-});
+  app.get('/', async (req, res) => {
+    const { url } = req.query;
 
-app.listen(3000);
+    console.time(`Screen shot generated for ${url} in`);
 
-console.log('Created server running on http://localhost:3000');
+    try {
+      res.setHeader('Content-Type', 'image/png');
+      res.end(await generateScreenshot(context, url));
+    } catch (e) {
+      console.log(e);
+      res.send(e);
+    } finally {
+      console.timeEnd(`Screen shot generated for ${url} in`);
+    }
+  });
+
+  app.listen(port, async () => {
+    console.log(`Example app listening on port ${port}`);
+  });
+};
+
+chromium.launch().then(init);
