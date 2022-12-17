@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const { chromium } = require('playwright');
 
+const log = require('./lib/log.js');
 const generateScreenshot = require('./lib/generate-screenshot.js');
 const isValidDomain = require('./lib/domain-validator.js');
 const base64 = require('./lib/base64.js');
@@ -34,6 +35,7 @@ async function init(browser) {
       try {
         payload = JSON.parse(payloadString);
       } catch (e) {
+        log.error(e);
         throw new Error('Unable to process JSON payload: ' + payloadString);
       }
 
@@ -44,8 +46,6 @@ async function init(browser) {
         `${payload.id}_${payload.content_hash}_${payload.cache_key}`,
       ]);
 
-      console.time(`Screen shot generated for ${url} in`);
-
       if (secretIsNotValid(payload)) {
         throw new Error('Invalid secret.');
       }
@@ -55,14 +55,14 @@ async function init(browser) {
         throw new Error('Invalid domain provided: ' + payload.env_url);
       }
 
-      console.log('Processing payload: ' + JSON.stringify(payload) + '. Decoded from: ' + path);
+      log.info('Processing payload: ' + JSON.stringify(payload) + '. Decoded from: ' + path);
 
       let base64EncodedScreenshot = '';
 
       const objectKey = `${payload.type}/${hash.md5(payloadString)}.png`;
       const byPassS3 = 'bypass_s3' in query;
 
-      if (byPassS3) console.log('Bypassing S3.');
+      if (byPassS3) log.info('Bypassing S3.');
 
       // If we're not bypassing s3, skip the checking/retrieval of any
       // objects from S3
@@ -73,7 +73,7 @@ async function init(browser) {
           await streamToBuffer(object.Body)
         ).toString('base64');
       } else {
-        console.log(`No existing image found, creating using constructed url: ${url}`);
+        log.info(`No existing image found, creating using constructed url: ${url}`);
 
         base64EncodedScreenshot = await generateScreenshot(context, url);
 
@@ -88,17 +88,16 @@ async function init(browser) {
 
       res.set(generateHeaders());
       res.end(base64EncodedScreenshot);
-
-      console.timeEnd(`Screen shot generated for ${url} in`);
     } catch (e) {
-      console.log(e);
-      res.set(generateHeaders());
-      res.end(getDefaultImage());
+      log.error(e);
+      // res.set(generateHeaders());
+      // res.end(getDefaultImage());
+      res.end('Default image here :)');
     }
   });
 
   app.listen(port, async () => {
-    console.log(`Example app listening on port ${port}`);
+    console.log(`Share image generator listening on port ${port}`);
   });
 };
 
