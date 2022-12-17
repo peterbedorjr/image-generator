@@ -4,7 +4,7 @@ const express = require('express');
 const { chromium } = require('playwright');
 
 const generateScreenshot = require('./lib/generate-screenshot.js');
-const domainValidator = require('./lib/domain-validator.js');
+const isValidDomain = require('./lib/domain-validator.js');
 const base64 = require('./lib/base64.js');
 const generateHeaders = require('./lib/generate-headers.js');
 const secretIsNotValid = require('./lib/validate-secret.js');
@@ -12,7 +12,7 @@ const joinUrl = require('./lib/join-url.js');
 const hash = require('./lib/hash.js');
 const s3Client = require('./lib/s3-client.js');
 const streamToBuffer = require('./lib/stream-to-buffer.js');
-const getDefaultImageResponse = require('./lib/get-default-image-response.js')
+const getDefaultImage = require('./lib/get-default-image.js')
 
 const app = express();
 const port = 3000;
@@ -44,16 +44,16 @@ async function init(browser) {
         `${payload.id}_${payload.content_hash}_${payload.cache_key}`,
       ]);
 
-      console.time(`Screen shot generated/retrieved from S3 for ${url} in`);
+      console.time(`Screen shot generated for ${url} in`);
 
-      // if (secretIsNotValid(payload)) {
-      //   throw new Error('Invalid secret.');
-      // }
+      if (secretIsNotValid(payload)) {
+        throw new Error('Invalid secret.');
+      }
 
-      // // If there is an override url provided, check against a whitelist
-      // if (payload.env_url && !isValidDomain(payload.env_url)) {
-      //   throw new Error('Invalid domain provided: ' + payload.env_url);
-      // }
+      // If there is an override url provided, check against a whitelist
+      if (payload.env_url && !isValidDomain(payload.env_url)) {
+        throw new Error('Invalid domain provided: ' + payload.env_url);
+      }
 
       console.log('Processing payload: ' + JSON.stringify(payload) + '. Decoded from: ' + path);
 
@@ -61,6 +61,8 @@ async function init(browser) {
 
       const objectKey = `${payload.type}/${hash.md5(payloadString)}.png`;
       const byPassS3 = 'bypass_s3' in query;
+
+      if (byPassS3) console.log('Bypassing S3.');
 
       // If we're not bypassing s3, skip the checking/retrieval of any
       // objects from S3
@@ -86,11 +88,12 @@ async function init(browser) {
 
       res.set(generateHeaders());
       res.end(base64EncodedScreenshot);
+
+      console.timeEnd(`Screen shot generated for ${url} in`);
     } catch (e) {
       console.log(e);
-      res.end(e);
-    } finally {
-      console.timeEnd(`Screen shot generated/retrieved from S3 for ${url} in`);
+      res.set(generateHeaders());
+      res.end(getDefaultImage());
     }
   });
 
