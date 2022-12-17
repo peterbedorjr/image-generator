@@ -101,6 +101,4 @@ async function initialize(browser) {
   });
 };
 
-chromium.launch({
-  headless: false,
-}).then(initialize);
+chromium.launch().then(initialize);
