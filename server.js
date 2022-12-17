@@ -20,7 +20,7 @@ const port = 3000;
 
 let context = null;
 
-async function init(browser) {
+async function initialize(browser) {
   context = await browser.newContext();
 
   app.get('/generate/:path', async (req, res) => {
@@ -35,7 +35,6 @@ async function init(browser) {
       try {
         payload = JSON.parse(payloadString);
       } catch (e) {
-        log.error(e);
         throw new Error('Unable to process JSON payload: ' + payloadString);
       }
 
@@ -77,11 +76,12 @@ async function init(browser) {
 
         base64EncodedScreenshot = await generateScreenshot(context, url);
 
+        // Upload generated image to S3
         if (!byPassS3) {
           try {
             await s3Client.putBase64EncodedImage(objectKey, base64EncodedScreenshot);
           } catch (e) {
-            console.error(e);
+            log.error(e);
           }
         }
       }
@@ -101,4 +101,6 @@ async function init(browser) {
   });
 };
 
-chromium.launch().then(init);
+chromium.launch({
+  headless: false,
+}).then(initialize);
