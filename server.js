@@ -10,19 +10,20 @@ let context = null;
 async function init (browser) {
   context = await browser.newContext();
 
-  app.get('/', async (req, res) => {
+  app.get('/generate', async (req, res) => {
     const { url } = req.query;
 
-    console.time(`Screen shot generated for ${url} in`);
+    // console.time(`Screen shot generated for ${url} in`);
 
     try {
+      console.log(url);
       res.setHeader('Content-Type', 'image/png');
       res.end(await generateScreenshot(context, url));
     } catch (e) {
       console.log(e);
       res.send(e);
     } finally {
-      console.timeEnd(`Screen shot generated for ${url} in`);
+      // console.timeEnd(`Screen shot generated for ${url} in`);
     }
   });
 
