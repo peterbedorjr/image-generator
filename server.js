@@ -102,7 +102,9 @@ async function initialize(browser) {
         }
       }
 
-      res.set(generateHeaders());
+      res.set(generateHeaders({
+        'Content-Length': base64EncodedScreenshot.length,
+      }));
       res.end(Buffer.from(base64EncodedScreenshot, 'base64'));
     } catch (e) {
       log.error(e);
