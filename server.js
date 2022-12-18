@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const { chromium } = require('playwright');
+const sharp = require('sharp');
 
 const log = require('./lib/log.js');
 const generateScreenshot = require('./lib/generate-screenshot.js');
@@ -74,7 +75,19 @@ async function initialize(browser) {
       } else {
         log.info(`No existing image found, creating using constructed url: ${url}`);
 
-        base64EncodedScreenshot = await generateScreenshot(context, url);
+        const screenshotBuffer = await generateScreenshot(context, url);
+
+        log.info('Compressing image');
+        const compressedScreenshotBuffer = await sharp(screenshotBuffer)
+          .png({
+            quality: 50,
+            compressionLevel: 9,
+            adaptiveFiltering: false,
+            force: true,
+          })
+          .toBuffer();
+
+        base64EncodedScreenshot = Buffer.from(compressedScreenshotBuffer).toString('base64');
 
         // Upload generated image to S3
         if (!byPassS3) {
@@ -87,7 +100,7 @@ async function initialize(browser) {
       }
 
       res.set(generateHeaders());
-      res.end(base64EncodedScreenshot);
+      res.end(Buffer.from(base64EncodedScreenshot, 'base64'));
     } catch (e) {
       log.error(e);
       // res.set(generateHeaders());
