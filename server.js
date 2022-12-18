@@ -80,7 +80,7 @@ async function initialize(browser) {
 
         let screenshotBuffer = await generateScreenshot(context, url);
 
-        if (!'bypass_compression' in query) {
+        if (!!'bypass_compression' in query) {
           log.info('Compressing image');
           screenshotBuffer = await sharp(screenshotBuffer)
             .png({
