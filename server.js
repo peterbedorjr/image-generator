@@ -64,6 +64,7 @@ async function initialize(browser) {
 
       const objectKey = `${payload.type}/${hash.md5(payloadString)}.png`;
       const byPassS3 = 'bypass_s3' in query;
+      const byPassCompression = 'bypass_compression' in query;
 
       if (byPassS3) log.info('Bypassing S3.');
 
@@ -80,7 +81,7 @@ async function initialize(browser) {
 
         let screenshotBuffer = await generateScreenshot(context, url);
 
-        if (!!'bypass_compression' in query) {
+        if (!byPassCompression) {
           log.info('Compressing image');
           screenshotBuffer = await sharp(screenshotBuffer)
             .png({
