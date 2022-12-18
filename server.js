@@ -78,19 +78,21 @@ async function initialize(browser) {
       } else {
         log.info(`No existing image found, creating using constructed url: ${url}`);
 
-        const screenshotBuffer = await generateScreenshot(context, url);
+        let screenshotBuffer = await generateScreenshot(context, url);
 
-        log.info('Compressing image');
-        const compressedScreenshotBuffer = await sharp(screenshotBuffer)
-          .png({
-            quality: 50,
-            compressionLevel: 9,
-            adaptiveFiltering: false,
-            force: true,
-          })
-          .toBuffer();
+        if (!'bypass_compression' in query) {
+          log.info('Compressing image');
+          screenshotBuffer = await sharp(screenshotBuffer)
+            .png({
+              quality: 50,
+              compressionLevel: 9,
+              adaptiveFiltering: false,
+              force: true,
+            })
+            .toBuffer();
+          }
 
-        base64EncodedScreenshot = Buffer.from(compressedScreenshotBuffer).toString('base64');
+        base64EncodedScreenshot = Buffer.from(screenshotBuffer).toString('base64');
 
         // Upload generated image to S3
         if (!byPassS3) {
@@ -102,9 +104,7 @@ async function initialize(browser) {
         }
       }
 
-      res.set(generateHeaders({
-        'Content-Length': base64EncodedScreenshot.length,
-      }));
+      res.set(generateHeaders());
       res.end(Buffer.from(base64EncodedScreenshot, 'base64'));
     } catch (e) {
       log.error(e);
