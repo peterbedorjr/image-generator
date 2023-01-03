@@ -28,6 +28,8 @@ async function initialize(browser) {
   context = await browser.newContext();
 
   app.get('/generate/:path', async (req, res) => {
+    const requestStartTime = Date.now();
+
     const { path } = req.params;
     const { query } = req;
     let payload = null;
@@ -58,7 +60,7 @@ async function initialize(browser) {
         throw new Error('Invalid domain provided: ' + payload.env_url);
       }
 
-      log.info('Processing payload: ' + JSON.stringify(payload) + '. Decoded from: ' + path);
+      log.info('Processing payload: \n' + JSON.stringify(payload) + '. Decoded from: \n' + path);
 
       let base64EncodedScreenshot = '';
 
@@ -83,6 +85,7 @@ async function initialize(browser) {
 
         if (!byPassCompression) {
           log.info('Compressing image');
+
           screenshotBuffer = await sharp(screenshotBuffer)
             .png({
               quality: 50,
@@ -91,7 +94,7 @@ async function initialize(browser) {
               force: true,
             })
             .toBuffer();
-          }
+        }
 
         base64EncodedScreenshot = Buffer.from(screenshotBuffer).toString('base64');
 
@@ -109,9 +112,10 @@ async function initialize(browser) {
       res.end(Buffer.from(base64EncodedScreenshot, 'base64'));
     } catch (e) {
       log.error(e);
-      // res.set(generateHeaders());
-      // res.end(getDefaultImage());
-      res.end('Default image here :)');
+      res.set(generateHeaders());
+      res.end(await getDefaultImage());
+    } finally {
+      log.info(`Request completed in ${Date.now() - requestStartTime}ms`);
     }
   });
 
