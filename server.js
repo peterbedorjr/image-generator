@@ -16,7 +16,7 @@ const joinUrl = require('./lib/join-url.js');
 const hash = require('./lib/hash.js');
 const s3Client = require('./lib/s3-client.js');
 const streamToBuffer = require('./lib/stream-to-buffer.js');
-const getDefaultImage = require('./lib/get-default-image.js')
+const getDefaultImage = require('./lib/get-default-image.js');
 
 const app = express();
 const port = 3000;
