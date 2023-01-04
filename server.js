@@ -4,6 +4,7 @@ const express = require('express');
 const responseTime = require('response-time');
 const { chromium } = require('playwright');
 const sharp = require('sharp');
+const expressQueue = require('express-queue');
 
 const log = require('./lib/log.js');
 const generateScreenshot = require('./lib/generate-screenshot.js');
@@ -22,12 +23,14 @@ const port = 3000;
 
 app.use(responseTime());
 
+app.use(expressQueue({ activeLimit: 5, queuedLimit: -1 }));
+
 let context = null;
 
 async function initialize(browser) {
   context = await browser.newContext();
 
-  app.get('/generate/:path', async (req, res) => {
+  app.get('/share/:path', async (req, res) => {
     const requestStartTime = Date.now();
 
     const { path } = req.params;
@@ -113,7 +116,7 @@ async function initialize(browser) {
     } catch (e) {
       log.error(e);
       res.set(generateHeaders());
-      res.end(await getDefaultImage());
+      res.end(Buffer.from(await getDefaultImage(), 'base64'));
     } finally {
       log.info(`Request completed in ${Date.now() - requestStartTime}ms`);
     }
